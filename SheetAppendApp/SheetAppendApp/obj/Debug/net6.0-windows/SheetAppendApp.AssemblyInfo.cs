@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SheetAppendApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+98a2b991dd4ee57abbf71d4ac91870eb1bd11ed9")]
 [assembly: System.Reflection.AssemblyProductAttribute("SheetAppendApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SheetAppendApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

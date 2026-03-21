@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
@@ -14,525 +15,261 @@ namespace SheetAppendApp
         public int FilesSucceeded { get; set; }
         public int FilesFailed { get; set; }
         public int SheetsMerged { get; set; }
-        public long RowsWritten { get; set; }        // tổng số dòng ghi ra output (bao gồm cả dòng trống trong vùng data)
-        public long DataRows { get; set; }           // số dòng có dữ liệu thực
-        public long BlankRowsPreserved { get; set; } // số dòng trống được giữ lại
-        public long HeadersSkipped { get; set; }     // số sheet bị bỏ 1 dòng header
+        public long RowsWritten { get; set; }
+        public long DataRows { get; set; }
+        public long BlankRowsPreserved { get; set; }
+        public long HeadersSkipped { get; set; }
     }
 
     public static class NpoiMerger
     {
-        /// <summary>
-        /// FAST merge .xls/.xlsx -> .xlsx (streaming, low RAM, values-only).
-        /// - Base header: first non-empty row of first sheet of first valid file
-        /// - Other sheets: skip first row ONLY if it matches base header (>=80%) AND looks like header
-        /// - Preserves blank rows between firstDataRow..lastDataRow to avoid "missing 1 line".
-        /// </summary>
-        public static MergeReport MergeFast_ToOneXlsx(
-            string[] inputFiles,
-            string outputPath,
-            bool trySkipHeaderIfMatchesBase,
-            Action<string>? log = null)
+        public static MergeReport MergeFast_ToOneXlsx(string[] inputFiles, string outputPath, bool trySkipHeaderIfMatchesBase, Action<string>? log = null)
         {
             log ??= _ => { };
-
             var files = NormalizeFiles(inputFiles);
-            if (files.Length == 0)
-                throw new InvalidOperationException("Không có file .xls/.xlsx hợp lệ.");
+            if (files.Length == 0) throw new InvalidOperationException("Không có file Excel/CSV hợp lệ.");
+            if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("outputPath is required.", nameof(outputPath));
+            if (!outputPath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) outputPath += ".xlsx";
 
-            if (string.IsNullOrWhiteSpace(outputPath))
-                throw new ArgumentException("outputPath is required.", nameof(outputPath));
-
-            if (!outputPath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                outputPath += ".xlsx";
-
-            var rep = new MergeReport
-            {
-                InputFiles = files.Length
-            };
-
+            var rep = new MergeReport { InputFiles = files.Length };
             var baseXssf = new XSSFWorkbook();
+
+            // Dùng SXSSF để lưu file dung lượng lớn không bị tràn RAM
             using var outWb = new SXSSFWorkbook(baseXssf, 200);
             outWb.CompressTempFiles = true;
 
             var outSheet = outWb.CreateSheet("Merged");
 
-            var dateStyle = baseXssf.CreateCellStyle();
-            dateStyle.DataFormat = baseXssf.CreateDataFormat().GetFormat("yyyy-mm-dd hh:mm:ss");
-
-            string[]? baseHeader = null;
-            int baseMinCol = 0;
-            int baseMaxCol = 0;
-            bool baseHeaderInitialized = false;
-
+            // Biến kiểm soát việc CHỈ LẤY HEADER 1 LẦN DUY NHẤT
+            bool isFirstSheetOverall = true;
             int destRow = 0;
-            var fmt = new DataFormatter(true);
 
             for (int fi = 0; fi < files.Length; fi++)
             {
                 string file = files[fi];
+                string ext = Path.GetExtension(file).ToLowerInvariant();
                 log($"[FILE {fi + 1}/{files.Length}] {Path.GetFileName(file)}");
 
-                IWorkbook? wb = null;
-                FileStream? fs = null;
+                if (ext == ".csv")
+                {
+                    MergeCsvFile(file, outSheet, ref destRow, rep, log, ref isFirstSheetOverall);
+                    continue;
+                }
 
+                // Xử lý file Excel (.xls, .xlsx, .xlsm)
+                IWorkbook? wb = null; FileStream? fs = null;
                 try
                 {
                     fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                     wb = OpenWorkbook(fs, file);
-
-                    if (wb.NumberOfSheets <= 0)
-                    {
-                        log("  [SKIP] File không có sheet nào.");
-                        rep.FilesFailed++;
-                        continue;
-                    }
+                    if (wb.NumberOfSheets <= 0) { log("  [SKIP] File không có sheet nào."); rep.FilesFailed++; continue; }
 
                     bool fileMergedSomething = false;
 
+                    // BỘ NHỚ ĐỆM STYLE: Tránh việc tạo trùng lặp Style gây lỗi hỏng file Output
+                    var styleCache = new Dictionary<short, ICellStyle>();
+
                     for (int si = 0; si < wb.NumberOfSheets; si++)
                     {
-                        ISheet? sh = null;
+                        ISheet? sh = wb.GetSheetAt(si);
+                        if (sh == null) continue;
 
-                        try
+                        int firstDataRow = FindFirstDataRow(sh);
+                        int lastDataRow = FindLastDataRow(sh);
+                        if (firstDataRow < 0 || lastDataRow < firstDataRow) { log($"  [SKIP] Sheet [{sh.SheetName}] trống."); continue; }
+
+                        int startRow = firstDataRow;
+
+                        // LOGIC MỚI: Chỉ lấy dòng đầu tiên (Header) ở sheet ĐẦU TIÊN nhất
+                        if (isFirstSheetOverall)
                         {
-                            sh = wb.GetSheetAt(si);
-                            if (sh == null)
-                            {
-                                log($"  [SKIP] Sheet #{si + 1} null.");
-                                continue;
-                            }
-
-                            int firstDataRow = FindFirstDataRow(sh);
-                            int lastDataRow = FindLastDataRow(sh);
-
-                            if (firstDataRow < 0 || lastDataRow < firstDataRow)
-                            {
-                                log($"  [SKIP] Sheet [{sh.SheetName}] trống.");
-                                continue;
-                            }
-
-                            bool isBaseSheet = !baseHeaderInitialized;
-
-                            if (isBaseSheet)
-                            {
-                                var hdr = sh.GetRow(firstDataRow);
-                                if (hdr == null)
-                                {
-                                    log($"  [SKIP] Sheet [{sh.SheetName}] không đọc được header.");
-                                    continue;
-                                }
-
-                                (baseMinCol, baseMaxCol) = GetRowColSpan(hdr);
-                                baseHeader = GetRowSignatureFast(hdr, baseMinCol, baseMaxCol, fmt);
-                                baseHeaderInitialized = true;
-
-                                log($"  [BASE] File={Path.GetFileName(file)}, Sheet=[{sh.SheetName}], Row={firstDataRow}, Cols={baseMinCol}..{baseMaxCol}");
-                            }
-
-                            bool skipHeader = false;
-                            if (!isBaseSheet && trySkipHeaderIfMatchesBase && baseHeader != null)
-                            {
-                                var hdr = sh.GetRow(firstDataRow);
-                                if (hdr != null)
-                                {
-                                    bool looksHeader = LooksLikeHeaderRow(hdr, baseMinCol, baseMaxCol, fmt);
-                                    bool matchesBase = RowMatchesBaseHeader(hdr, baseMinCol, baseMaxCol, baseHeader, fmt);
-
-                                    if (looksHeader && matchesBase)
-                                    {
-                                        skipHeader = true;
-                                        rep.HeadersSkipped++;
-                                    }
-                                }
-                            }
-
-                            int startRow = firstDataRow + (skipHeader ? 1 : 0);
-                            if (startRow > lastDataRow)
-                            {
-                                log($"  [SKIP] Sheet [{sh.SheetName}] chỉ có header.");
-                                continue;
-                            }
-
-                            long wrote = WriteSheetRangePreserveBlanks(
-                                sh,
-                                startRow,
-                                lastDataRow,
-                                outSheet,
-                                ref destRow,
-                                dateStyle,
-                                rep);
-
-                            if (wrote > 0)
-                            {
-                                rep.SheetsMerged++;
-                                fileMergedSomething = true;
-                                log($"  [OK] Sheet [{sh.SheetName}] -> rows={wrote}");
-                            }
+                            isFirstSheetOverall = false;
+                            startRow = firstDataRow; // Bắt đầu lấy từ dòng đầu (có header)
+                            log($"  [BASE] File={Path.GetFileName(file)}, Sheet=[{sh.SheetName}] (Lấy Header gốc)");
                         }
-                        catch (Exception exSheet)
+                        else
                         {
-                            string sheetName = sh?.SheetName ?? $"#{si + 1}";
-                            log($"  [ERROR] Sheet [{sheetName}] lỗi: {exSheet.Message}");
+                            startRow = firstDataRow + 1; // Tuyệt đối bỏ qua dòng đầu tiên (header) từ đây trở đi
+                            rep.HeadersSkipped++;
                         }
+
+                        if (startRow > lastDataRow) continue; // Nếu sheet này chỉ có mỗi 1 dòng header thì bỏ qua luôn
+
+                        // Hàm ghi dữ liệu kèm theo Copy Style (Màu nền, in đậm, khung bảng,...)
+                        long wrote = WriteSheetRangePreserveStyles(sh, startRow, lastDataRow, outSheet, ref destRow, styleCache, outWb, rep);
+
+                        if (wrote > 0) { rep.SheetsMerged++; fileMergedSomething = true; log($"  [OK] Sheet [{sh.SheetName}] -> Gộp thành công {wrote} dòng"); }
                     }
 
-                    if (fileMergedSomething)
-                        rep.FilesSucceeded++;
-                    else
-                        rep.FilesFailed++;
+                    if (fileMergedSomething) rep.FilesSucceeded++; else rep.FilesFailed++;
                 }
-                catch (Exception exFile)
-                {
-                    rep.FilesFailed++;
-                    log($"  [ERROR] File lỗi: {exFile.Message}");
-                }
-                finally
-                {
-                    try { wb?.Close(); } catch { }
-                    try { fs?.Dispose(); } catch { }
-                }
+                catch (Exception exFile) { rep.FilesFailed++; log($"  [ERROR] File lỗi: {exFile.Message}"); }
+                finally { try { wb?.Close(); } catch { } try { fs?.Dispose(); } catch { } }
             }
 
-            if (rep.RowsWritten == 0)
-                throw new InvalidOperationException("Không có dữ liệu nào được merge ra file output.");
+            if (rep.RowsWritten == 0) throw new InvalidOperationException("Không có dữ liệu nào được merge ra file output.");
 
             string? outDir = Path.GetDirectoryName(outputPath);
-            if (!string.IsNullOrWhiteSpace(outDir))
-                Directory.CreateDirectory(outDir);
+            if (!string.IsNullOrWhiteSpace(outDir)) Directory.CreateDirectory(outDir);
 
             using (var outFs = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 outWb.Write(outFs);
             }
-
             outWb.Dispose();
-
             log($"[DONE] Saved: {outputPath}");
-            log($"[STATS] files={rep.InputFiles}, success={rep.FilesSucceeded}, failed={rep.FilesFailed}, sheets={rep.SheetsMerged}, rowsWritten={rep.RowsWritten}, dataRows={rep.DataRows}, blankRows={rep.BlankRowsPreserved}, headersSkipped={rep.HeadersSkipped}");
-
             return rep;
         }
 
-        // ===================== Open workbook =====================
+        // ================= XỬ LÝ CSV =================
+        private static void MergeCsvFile(string file, ISheet outSheet, ref int destRow, MergeReport rep, Action<string> log, ref bool isFirstSheetOverall)
+        {
+            try
+            {
+                var lines = File.ReadAllLines(file);
+                if (lines.Length == 0) { log($"  [SKIP] File CSV trống."); rep.FilesFailed++; return; }
+
+                int firstDataRow = -1;
+                for (int i = 0; i < lines.Length; i++) { if (!string.IsNullOrWhiteSpace(lines[i])) { firstDataRow = i; break; } }
+                if (firstDataRow < 0) { log($"  [SKIP] CSV toàn dòng trống."); rep.FilesFailed++; return; }
+
+                int startRow = firstDataRow;
+
+                // Nếu CSV là file đầu tiên thì lấy Header, ngược lại cắt bỏ dòng số 1
+                if (isFirstSheetOverall)
+                {
+                    isFirstSheetOverall = false;
+                    startRow = firstDataRow;
+                    log($"  [BASE] File={Path.GetFileName(file)} (CSV) (Lấy Header gốc)");
+                }
+                else
+                {
+                    startRow = firstDataRow + 1;
+                    rep.HeadersSkipped++;
+                }
+
+                long wrote = 0;
+                for (int r = startRow; r < lines.Length; r++)
+                {
+                    var line = lines[r];
+                    if (string.IsNullOrWhiteSpace(line)) { rep.BlankRowsPreserved++; rep.RowsWritten++; destRow++; wrote++; continue; }
+
+                    var dRow = outSheet.GetRow(destRow) ?? outSheet.CreateRow(destRow);
+                    var cells = ParseCsvLine(line);
+
+                    for (int c = 0; c < cells.Length; c++)
+                    {
+                        var dCell = dRow.GetCell(c) ?? dRow.CreateCell(c);
+                        string val = cells[c];
+                        if (double.TryParse(val, out double num)) dCell.SetCellValue(num);
+                        else dCell.SetCellValue(val);
+                    }
+                    rep.DataRows++; rep.RowsWritten++; destRow++; wrote++;
+                }
+
+                if (wrote > 0) { rep.SheetsMerged++; rep.FilesSucceeded++; log($"  [OK] CSV -> Gộp thành công {wrote} dòng"); }
+                else rep.FilesFailed++;
+            }
+            catch (Exception ex) { rep.FilesFailed++; log($"  [ERROR] CSV lỗi: {ex.Message}"); }
+        }
+
+        private static string[] ParseCsvLine(string line)
+        {
+            var result = new List<string>();
+            bool inQuotes = false;
+            var currentElement = new System.Text.StringBuilder();
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '\"') inQuotes = !inQuotes;
+                else if (c == ',' && !inQuotes) { result.Add(currentElement.ToString()); currentElement.Clear(); }
+                else currentElement.Append(c);
+            }
+            result.Add(currentElement.ToString());
+            return result.ToArray();
+        }
+
         private static IWorkbook OpenWorkbook(Stream fs, string filePath)
         {
             string ext = Path.GetExtension(filePath).ToLowerInvariant();
-
-            return ext switch
-            {
-                ".xlsx" => new XSSFWorkbook(fs),
-                ".xls" => new HSSFWorkbook(fs),
-                _ => throw new NotSupportedException($"Unsupported Excel format: {ext}")
-            };
+            return ext switch { ".xlsx" or ".xlsm" => new XSSFWorkbook(fs), ".xls" => new HSSFWorkbook(fs), _ => throw new NotSupportedException($"Unsupported Excel format: {ext}") };
         }
 
-        // ===================== Write (preserve blank rows) =====================
-        private static long WriteSheetRangePreserveBlanks(
-            ISheet sh,
-            int startRow,
-            int lastDataRow,
-            ISheet outSheet,
-            ref int destRow,
-            ICellStyle dateStyle,
-            MergeReport rep)
+        private static string[] NormalizeFiles(string[] inputFiles)
+        {
+            if (inputFiles == null || inputFiles.Length == 0) return Array.Empty<string>();
+            string[] validExts = { ".xls", ".xlsx", ".xlsm", ".csv" };
+            return inputFiles.Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Where(File.Exists).Where(f => validExts.Contains(Path.GetExtension(f).ToLowerInvariant())).Where(f => !Path.GetFileName(f).StartsWith("~$", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToArray();
+        }
+
+        // ================= COPY DATA & STYLE =================
+        private static long WriteSheetRangePreserveStyles(ISheet sh, int startRow, int lastDataRow, ISheet outSheet, ref int destRow, Dictionary<short, ICellStyle> styleCache, IWorkbook outWb, MergeReport rep)
         {
             long wrote = 0;
-
             for (int r = startRow; r <= lastDataRow; r++)
             {
                 var sRow = sh.GetRow(r);
                 var dRow = outSheet.GetRow(destRow) ?? outSheet.CreateRow(destRow);
 
-                if (sRow == null || RowIsEmptyByValue(sRow))
-                {
-                    rep.BlankRowsPreserved++;
-                    rep.RowsWritten++;
-                    destRow++;
-                    wrote++;
-                    continue;
-                }
+                if (sRow == null || RowIsEmptyByValue(sRow)) { rep.BlankRowsPreserved++; rep.RowsWritten++; destRow++; wrote++; continue; }
+
+                // Copy luôn chiều cao của dòng (Row Height) nếu có
+                if (sRow.Height >= 0) dRow.Height = sRow.Height;
 
                 foreach (var cell in sRow.Cells)
                 {
                     if (cell == null) continue;
+                    var dCell = dRow.GetCell(cell.ColumnIndex) ?? dRow.CreateCell(cell.ColumnIndex);
 
-                    int c = cell.ColumnIndex;
-                    var dCell = dRow.GetCell(c) ?? dRow.CreateCell(c);
+                    // 1. Copy Giá Trị Ô (Values / Dates / Numbers)
+                    CopyCellValue_NoEval(cell, dCell);
 
-                    bool isDate = CopyCellValue_NoEval(cell, dCell);
-                    if (isDate)
-                        dCell.CellStyle = dateStyle;
+                    // 2. Copy Định dạng Style (Colors, Borders, Fonts)
+                    var sStyle = cell.CellStyle;
+                    if (sStyle != null)
+                    {
+                        // Kiểm tra xem Style này đã được tạo ra trong file Output chưa (tránh tràn RAM)
+                        if (!styleCache.TryGetValue(sStyle.Index, out var dStyle))
+                        {
+                            dStyle = outWb.CreateCellStyle();
+                            try
+                            {
+                                // Clone cấu trúc style từ ô nguồn sang ô đích
+                                dStyle.CloneStyleFrom(sStyle);
+                            }
+                            catch
+                            {
+                                // Bỏ qua nếu cấu trúc Style không tương thích (Ví dụ: file .xls quá cũ copy sang .xlsx mới)
+                            }
+                            styleCache[sStyle.Index] = dStyle;
+                        }
+                        dCell.CellStyle = dStyle;
+                    }
                 }
-
-                rep.DataRows++;
-                rep.RowsWritten++;
-                destRow++;
-                wrote++;
+                rep.DataRows++; rep.RowsWritten++; destRow++; wrote++;
             }
-
             return wrote;
         }
 
-        /// <summary>
-        /// Values-only, no formula eval: for Formula uses cached result.
-        /// Returns true if date (needs dateStyle).
-        /// </summary>
         private static bool CopyCellValue_NoEval(ICell s, ICell d)
         {
             switch (s.CellType)
             {
-                case CellType.String:
-                    d.SetCellValue(s.StringCellValue ?? string.Empty);
-                    return false;
-
-                case CellType.Numeric:
-                    if (DateUtil.IsCellDateFormatted(s))
-                    {
-                        d.SetCellValue(s.NumericCellValue);
-                        return true;
-                    }
-                    d.SetCellValue(s.NumericCellValue);
-                    return false;
-
-                case CellType.Boolean:
-                    d.SetCellValue(s.BooleanCellValue);
-                    return false;
-
-                case CellType.Error:
-                    d.SetCellErrorValue(s.ErrorCellValue);
-                    return false;
-
+                case CellType.String: d.SetCellValue(s.StringCellValue ?? string.Empty); return false;
+                case CellType.Numeric: if (DateUtil.IsCellDateFormatted(s)) { d.SetCellValue(s.NumericCellValue); return true; } d.SetCellValue(s.NumericCellValue); return false;
+                case CellType.Boolean: d.SetCellValue(s.BooleanCellValue); return false;
+                case CellType.Error: d.SetCellErrorValue(s.ErrorCellValue); return false;
                 case CellType.Formula:
-                    switch (s.CachedFormulaResultType)
-                    {
-                        case CellType.String:
-                            d.SetCellValue(s.StringCellValue ?? string.Empty);
-                            return false;
-
-                        case CellType.Numeric:
-                            if (DateUtil.IsCellDateFormatted(s))
-                            {
-                                d.SetCellValue(s.NumericCellValue);
-                                return true;
-                            }
-                            d.SetCellValue(s.NumericCellValue);
-                            return false;
-
-                        case CellType.Boolean:
-                            d.SetCellValue(s.BooleanCellValue);
-                            return false;
-
-                        case CellType.Error:
-                            d.SetCellErrorValue(s.ErrorCellValue);
-                            return false;
-
-                        case CellType.Blank:
-                        case CellType._None:
-                        default:
-                            d.SetBlank();
-                            return false;
-                    }
-
-                case CellType.Blank:
-                case CellType._None:
-                default:
-                    d.SetBlank();
-                    return false;
+                    if (s.CachedFormulaResultType == CellType.Numeric && DateUtil.IsCellDateFormatted(s)) { d.SetCellValue(s.NumericCellValue); return true; }
+                    if (s.CachedFormulaResultType == CellType.Numeric) { d.SetCellValue(s.NumericCellValue); return false; }
+                    if (s.CachedFormulaResultType == CellType.String) { d.SetCellValue(s.StringCellValue ?? string.Empty); return false; }
+                    d.SetBlank(); return false;
+                default: d.SetBlank(); return false;
             }
         }
 
-        // ===================== Header detection =====================
-        private static bool LooksLikeHeaderRow(IRow row, int c1, int c2, DataFormatter fmt)
-        {
-            int nonEmpty = 0;
-            int stringy = 0;
-
-            for (int c = c1; c <= c2; c++)
-            {
-                var cell = row.GetCell(c);
-                var text = Normalize(SafeFormatCellValue(fmt, cell));
-                if (string.IsNullOrEmpty(text))
-                    continue;
-
-                nonEmpty++;
-                if (cell != null && (cell.CellType == CellType.String || HasLetters(text)))
-                    stringy++;
-            }
-
-            if (nonEmpty < 2)
-                return false;
-
-            return (double)stringy / nonEmpty >= 0.6;
-        }
-
-        private static bool RowMatchesBaseHeader(IRow row, int c1, int c2, string[] baseHeader, DataFormatter fmt)
-        {
-            int matches = 0;
-            int total = 0;
-
-            for (int c = c1; c <= c2; c++)
-            {
-                int idx = c - c1;
-                if (idx < 0 || idx >= baseHeader.Length)
-                    continue;
-
-                var b = baseHeader[idx];
-                var cur = Normalize(SafeFormatCellValue(fmt, row.GetCell(c)));
-
-                if (string.IsNullOrEmpty(b) && string.IsNullOrEmpty(cur))
-                    continue;
-
-                total++;
-                if (string.Equals(b, cur, StringComparison.OrdinalIgnoreCase))
-                    matches++;
-            }
-
-            if (total < 3)
-                return false;
-
-            return (double)matches / total >= 0.80;
-        }
-
-        private static (int minCol, int maxCol) GetRowColSpan(IRow row)
-        {
-            int min = int.MaxValue;
-            int max = -1;
-
-            foreach (var cell in row.Cells)
-            {
-                if (cell == null) continue;
-                if (cell.CellType == CellType.Blank) continue;
-
-                if (cell.CellType == CellType.String && string.IsNullOrWhiteSpace(cell.StringCellValue))
-                    continue;
-
-                min = Math.Min(min, cell.ColumnIndex);
-                max = Math.Max(max, cell.ColumnIndex);
-            }
-
-            if (max < 0)
-            {
-                int first = row.FirstCellNum;
-                int lastExclusive = row.LastCellNum;
-
-                if (first < 0 || lastExclusive <= 0)
-                    return (0, 0);
-
-                min = Math.Max(0, first);
-                max = Math.Max(min, lastExclusive - 1);
-            }
-
-            return (min, max);
-        }
-
-        private static string[] GetRowSignatureFast(IRow row, int c1, int c2, DataFormatter fmt)
-        {
-            var sig = new string[c2 - c1 + 1];
-
-            for (int c = c1; c <= c2; c++)
-            {
-                sig[c - c1] = Normalize(SafeFormatCellValue(fmt, row.GetCell(c)));
-            }
-
-            return sig;
-        }
-
-        private static bool HasLetters(string s)
-        {
-            foreach (var ch in s)
-            {
-                if (char.IsLetter(ch))
-                    return true;
-            }
-            return false;
-        }
-
-        private static string Normalize(string? s)
-        {
-            return string.IsNullOrWhiteSpace(s) ? string.Empty : s.Trim();
-        }
-
-        private static string SafeFormatCellValue(DataFormatter fmt, ICell? cell)
-        {
-            try
-            {
-                return cell == null ? string.Empty : fmt.FormatCellValue(cell);
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-
-        // ===================== Data row range =====================
-        private static int FindFirstDataRow(ISheet sh)
-        {
-            for (int r = sh.FirstRowNum; r <= sh.LastRowNum; r++)
-            {
-                var row = sh.GetRow(r);
-                if (row == null) continue;
-                if (!RowIsEmptyByValue(row)) return r;
-            }
-            return -1;
-        }
-
-        private static int FindLastDataRow(ISheet sh)
-        {
-            for (int r = sh.LastRowNum; r >= sh.FirstRowNum; r--)
-            {
-                var row = sh.GetRow(r);
-                if (row == null) continue;
-                if (!RowIsEmptyByValue(row)) return r;
-            }
-            return -1;
-        }
-
-        private static bool RowIsEmptyByValue(IRow row)
-        {
-            foreach (var cell in row.Cells)
-            {
-                if (cell == null) continue;
-
-                switch (cell.CellType)
-                {
-                    case CellType.String:
-                        if (!string.IsNullOrWhiteSpace(cell.StringCellValue))
-                            return false;
-                        break;
-
-                    case CellType.Numeric:
-                    case CellType.Boolean:
-                    case CellType.Error:
-                        return false;
-
-                    case CellType.Formula:
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        // ===================== Files =====================
-        private static string[] NormalizeFiles(string[] inputFiles)
-        {
-            if (inputFiles == null || inputFiles.Length == 0)
-                return Array.Empty<string>();
-
-            return inputFiles
-                .Where(f => !string.IsNullOrWhiteSpace(f))
-                .Select(f => f.Trim())
-                .Where(File.Exists)
-                .Where(f =>
-                {
-                    string ext = Path.GetExtension(f).ToLowerInvariant();
-                    return ext == ".xls" || ext == ".xlsx";
-                })
-                .Where(f => !Path.GetFileName(f).StartsWith("~$", StringComparison.OrdinalIgnoreCase))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-        }
+        private static int FindFirstDataRow(ISheet sh) { for (int r = sh.FirstRowNum; r <= sh.LastRowNum; r++) { var row = sh.GetRow(r); if (row != null && !RowIsEmptyByValue(row)) return r; } return -1; }
+        private static int FindLastDataRow(ISheet sh) { for (int r = sh.LastRowNum; r >= sh.FirstRowNum; r--) { var row = sh.GetRow(r); if (row != null && !RowIsEmptyByValue(row)) return r; } return -1; }
+        private static bool RowIsEmptyByValue(IRow row) { foreach (var cell in row.Cells) { if (cell == null) continue; switch (cell.CellType) { case CellType.String: if (!string.IsNullOrWhiteSpace(cell.StringCellValue)) return false; break; case CellType.Numeric: case CellType.Boolean: case CellType.Error: case CellType.Formula: return false; } } return true; }
     }
 }
