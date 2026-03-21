@@ -1,0 +1,265 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\APPLICATION CODE\\SheetAppendApp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\npoimerger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\npoimerger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\excelmultimerger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\excelmultimerger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BEAEDDFC-47D4-44B8-B953-1DBE00492F1C}|SheetAppendApp\\SheetAppendApp.csproj|D:\\APPLICATION CODE\\SheetAppendApp\\sheetappendapp\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{BEAEDDFC-47D4-44B8-B953-1DBE00492F1C}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BEAEDDFC-47D4-44B8-B953-1DBE00492F1C}|SheetAppendApp\\SheetAppendApp.csproj|D:\\APPLICATION CODE\\SheetAppendApp\\sheetappendapp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{BEAEDDFC-47D4-44B8-B953-1DBE00492F1C}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\mergerunner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\mergerunner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\shellintegration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\shellintegration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\ipcserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\ipcserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\ipcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\ipcclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\trayappcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\trayappcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\mergeoptions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\mergeoptions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\applog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\applog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\excelrepair.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\excelrepair.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|d:\\application code\\sheetappendapp\\sheetappendapp\\excelappender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE9ECBFE-06B8-9550-E0C7-BA11B43C74D5}|SheetAppendApp\\SheetAppendApp.csproj|solutionrelative:sheetappendapp\\excelappender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "NpoiMerger.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\NpoiMerger.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\NpoiMerger.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\NpoiMerger.cs",
+              "RelativeToolTip": "SheetAppendApp\\NpoiMerger.cs",
+              "ViewState": "AgIAAD8BAAAAAAAAAAAEwFEBAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:44:42.648Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "MergeRunner.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MergeRunner.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\MergeRunner.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MergeRunner.cs",
+              "RelativeToolTip": "SheetAppendApp\\MergeRunner.cs",
+              "ViewState": "AgIAADgAAAAAAAAAAAAkwF8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:22:31.338Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ShellIntegration.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ShellIntegration.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\ShellIntegration.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ShellIntegration.cs",
+              "RelativeToolTip": "SheetAppendApp\\ShellIntegration.cs",
+              "ViewState": "AgIAAEQAAAAAAAAAAAAqwGcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:22:11.168Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "IpcServer.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\IpcServer.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\IpcServer.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\IpcServer.cs",
+              "RelativeToolTip": "SheetAppendApp\\IpcServer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:20:36.823Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "IpcClient.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\IpcClient.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\IpcClient.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\IpcClient.cs",
+              "RelativeToolTip": "SheetAppendApp\\IpcClient.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:20:18.229Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "TrayAppContext.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\TrayAppContext.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\TrayAppContext.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\TrayAppContext.cs",
+              "RelativeToolTip": "SheetAppendApp\\TrayAppContext.cs",
+              "ViewState": "AgIAALAAAAAAAAAAAADwv8IAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:19:47.354Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ExcelMultiMerger.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelMultiMerger.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\ExcelMultiMerger.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelMultiMerger.cs",
+              "RelativeToolTip": "SheetAppendApp\\ExcelMultiMerger.cs",
+              "ViewState": "AgIAAFgBAAAAAAAAAAAwwIkBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T02:05:25.009Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "MergeOptions.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MergeOptions.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\MergeOptions.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MergeOptions.cs",
+              "RelativeToolTip": "SheetAppendApp\\MergeOptions.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:52:12.137Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MainForm.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MainForm.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\MainForm.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MainForm.cs",
+              "RelativeToolTip": "SheetAppendApp\\MainForm.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAcwGkAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:40:42.023Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\Program.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\Program.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\Program.cs",
+              "RelativeToolTip": "SheetAppendApp\\Program.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAcwBAAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:35:55.43Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "AppLog.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\AppLog.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\AppLog.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\AppLog.cs",
+              "RelativeToolTip": "SheetAppendApp\\AppLog.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T03:22:49.193Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MainForm.cs [Design]",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MainForm.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\MainForm.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\MainForm.cs [Design]",
+              "RelativeToolTip": "SheetAppendApp\\MainForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:36:22.661Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "ExcelRepair.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelRepair.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\ExcelRepair.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelRepair.cs",
+              "RelativeToolTip": "SheetAppendApp\\ExcelRepair.cs",
+              "ViewState": "AgIAAHUAAAAAAAAAAAAYwKcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T02:14:36.983Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "ExcelAppender.cs",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelAppender.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\ExcelAppender.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\ExcelAppender.cs",
+              "RelativeToolTip": "SheetAppendApp\\ExcelAppender.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAqwCQAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:36:54.238Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Form1.cs [Design]",
+              "DocumentMoniker": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\Form1.cs",
+              "RelativeDocumentMoniker": "SheetAppendApp\\Form1.cs",
+              "ToolTip": "D:\\APPLICATION CODE\\SheetAppendApp\\SheetAppendApp\\Form1.cs [Design]",
+              "RelativeToolTip": "SheetAppendApp\\Form1.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T01:35:52.956Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
