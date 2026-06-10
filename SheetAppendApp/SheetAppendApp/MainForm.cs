@@ -1,9 +1,3 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
 namespace SheetAppendApp
 {
     public partial class MainForm : Form
@@ -18,17 +12,16 @@ namespace SheetAppendApp
         private Button _btnBrowseInput = null!;
         private Button _btnBrowseFolder = null!;
         private Button _btnBrowseOutput = null!;
-        private bool _outputUserEdited = false;
-        private bool _isSettingOutput = false;
-        private string? _lastAutoOutput = null;
-        private CheckBox _chkRepair = null!;
-        private CheckBox _chkTempCopy = null!;
-        private CheckBox _chkCopyStyles = null!;
+
+
         private CheckBox _chkIncludeSubfolders = null!;
 
         private Button _btnRun = null!;
         private ProgressBar _progress = null!;
         private TextBox _log = null!;
+        private TableLayoutPanel _rowInFile = null!;
+        private TableLayoutPanel _rowInFolder = null!;
+        private FlowLayoutPanel _optRow = null!;
 
         // ĐÃ THÊM .CSV VÀO ĐÂY
         private readonly string[] _validExts = { ".xls", ".xlsx", ".xlsm", ".csv" };
@@ -40,6 +33,52 @@ namespace SheetAppendApp
             StartPosition = FormStartPosition.CenterScreen;
 
             BuildUi(); EnableDragDrop(); ApplyMode();
+
+            // Load lịch sử log toàn cục (khi chạy ngầm trước đó)
+            _log.Text = AppLog.GetAllText() + Environment.NewLine;
+
+            // Đăng ký nhận log theo thời gian thực từ Background/Tray
+            AppLog.Message += OnAppLogMessage;
+            TrayAppContext.TargetSelected += OnTrayTargetSelected;
+            TrayAppContext.BusyStateChanged += OnTrayBusyStateChanged;
+
+            FormClosed += (_, __) =>
+            {
+                AppLog.Message -= OnAppLogMessage;
+                TrayAppContext.TargetSelected -= OnTrayTargetSelected;
+                TrayAppContext.BusyStateChanged -= OnTrayBusyStateChanged;
+            };
+
+            // Khôi phục trạng thái nếu background đang chạy
+            if (TrayAppContext.CurrentTarget != null) OnTrayTargetSelected(TrayAppContext.CurrentTarget);
+            if (TrayAppContext.IsMergeRunning) OnTrayBusyStateChanged(true);
+        }
+
+        private void OnTrayTargetSelected(string targetPath)
+        {
+            if (InvokeRequired) { BeginInvoke(new Action<string>(OnTrayTargetSelected), targetPath); return; }
+            if (Directory.Exists(targetPath))
+            {
+                _rbFolder.Checked = true;
+                SetFolderPath(targetPath);
+            }
+            else if (File.Exists(targetPath))
+            {
+                _rbSingleFile.Checked = true;
+                SetInputPath(targetPath);
+            }
+        }
+
+        private void OnTrayBusyStateChanged(bool isBusy)
+        {
+            if (InvokeRequired) { BeginInvoke(new Action<bool>(OnTrayBusyStateChanged), isBusy); return; }
+            SetBusy(isBusy);
+        }
+
+        private void OnAppLogMessage(string msg)
+        {
+            if (InvokeRequired) { BeginInvoke(new Action<string>(OnAppLogMessage), msg); return; }
+            _log.AppendText(msg + Environment.NewLine);
         }
 
         private void EnableDragDrop()
@@ -83,71 +122,160 @@ namespace SheetAppendApp
 
         private void BuildUi()
         {
-            var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 10, Padding = new Padding(12) };
-            for (int i = 0; i < 9; i++) root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); Controls.Add(root);
+            BackColor = Color.FromArgb(32, 34, 37);
+            ForeColor = Color.FromArgb(220, 220, 220);
+            Font = new Font("Segoe UI", 10F, FontStyle.Regular);
 
-            var modePanel = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
-            _rbSingleFile = new RadioButton { Text = "Single file (gộp các sheet trong file)", AutoSize = true, Checked = true };
-            _rbFolder = new RadioButton { Text = "Folder (gộp tất cả file Excel/CSV trong folder)", AutoSize = true };
+            var topPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                Padding = new Padding(24, 24, 24, 10)
+            };
+
+            // 1. TITLE & TIP
+            var lblTitle = new Label { Text = "🚀 EXCEL & CSV MERGER", Font = new Font("Segoe UI", 18F, FontStyle.Bold), AutoSize = true, ForeColor = Color.FromArgb(88, 101, 242), Margin = new Padding(0, 0, 0, 10) };
+            topPanel.Controls.Add(lblTitle);
+
+            var dragTip = new Label { AutoSize = true, Text = "💡 Tip: You can drag & drop files or folders directly anywhere into this window.", ForeColor = Color.FromArgb(170, 170, 170), Margin = new Padding(0, 0, 0, 20) };
+            topPanel.Controls.Add(dragTip);
+
+            // 2. MODE SELECTION
+            var modePanel = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, Margin = new Padding(0, 0, 0, 15) };
+            _rbSingleFile = new RadioButton { Text = "Merge Sheets in a Single File", AutoSize = true, Checked = true, Cursor = Cursors.Hand, Margin = new Padding(15, 0, 25, 0), ForeColor = Color.White };
+            _rbFolder = new RadioButton { Text = "Merge Multiple Files in a Folder", AutoSize = true, Cursor = Cursors.Hand, ForeColor = Color.White };
             _rbSingleFile.CheckedChanged += (_, __) => ApplyMode(); _rbFolder.CheckedChanged += (_, __) => ApplyMode();
-            modePanel.Controls.Add(new Label { Text = "Mode:", AutoSize = true, Padding = new Padding(0, 6, 6, 0) });
-            modePanel.Controls.Add(_rbSingleFile); modePanel.Controls.Add(_rbFolder); root.Controls.Add(modePanel);
+            var lblMode = new Label { Text = "Mode:", AutoSize = true, Padding = new Padding(0, 2, 0, 0), Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.White };
+            modePanel.Controls.Add(lblMode); modePanel.Controls.Add(_rbSingleFile); modePanel.Controls.Add(_rbFolder);
+            topPanel.Controls.Add(modePanel);
 
-            _txtOutput = new TextBox { Dock = DockStyle.Fill };
-            _txtOutput.TextChanged += (_, __) => { if (_isSettingOutput) return; _outputUserEdited = true; };
+            // 3. SOURCE (Dynamic)
+            _rowInFile = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+            _rowInFile.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); _rowInFile.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); _rowInFile.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            _rowInFile.Controls.Add(new Label { Text = "Input File:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.White }, 0, 0);
+            _txtInput = CreateDarkTextBox(); _rowInFile.Controls.Add(_txtInput, 1, 0);
+            _btnBrowseInput = CreateDarkButton("Browse"); _btnBrowseInput.Click += (_, __) => BrowseInput(); _rowInFile.Controls.Add(_btnBrowseInput, 2, 0);
+            topPanel.Controls.Add(_rowInFile);
 
-            var rowIn = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 3, AutoSize = true };
-            rowIn.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220)); rowIn.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); rowIn.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-            rowIn.Controls.Add(new Label { Text = "Input file (Excel/CSV):", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
-            _txtInput = new TextBox { Dock = DockStyle.Fill }; rowIn.Controls.Add(_txtInput, 1, 0);
-            _btnBrowseInput = new Button { Text = "Browse...", Dock = DockStyle.Fill }; _btnBrowseInput.Click += (_, __) => BrowseInput(); rowIn.Controls.Add(_btnBrowseInput, 2, 0); root.Controls.Add(rowIn);
+            _rowInFolder = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, AutoSize = true, Margin = new Padding(0, 0, 0, 0) };
+            _rowInFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); _rowInFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); _rowInFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            _rowInFolder.Controls.Add(new Label { Text = "Input Folder:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.White }, 0, 0);
+            _txtFolder = CreateDarkTextBox(); _rowInFolder.Controls.Add(_txtFolder, 1, 0);
+            _btnBrowseFolder = CreateDarkButton("Browse"); _btnBrowseFolder.Click += (_, __) => BrowseFolder(); _rowInFolder.Controls.Add(_btnBrowseFolder, 2, 0);
+            topPanel.Controls.Add(_rowInFolder);
 
-            var rowFolder = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 3, AutoSize = true };
-            rowFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220)); rowFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); rowFolder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-            rowFolder.Controls.Add(new Label { Text = "Folder:", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
-            _txtFolder = new TextBox { Dock = DockStyle.Fill }; rowFolder.Controls.Add(_txtFolder, 1, 0);
-            _btnBrowseFolder = new Button { Text = "Select...", Dock = DockStyle.Fill }; _btnBrowseFolder.Click += (_, __) => BrowseFolder(); rowFolder.Controls.Add(_btnBrowseFolder, 2, 0); root.Controls.Add(rowFolder);
+            _optRow = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, Margin = new Padding(110, 0, 0, 10) };
+            _chkIncludeSubfolders = new CheckBox { Text = "Include Subfolders", AutoSize = true, Checked = false, Cursor = Cursors.Hand, ForeColor = Color.White };
+            _optRow.Controls.Add(_chkIncludeSubfolders);
+            topPanel.Controls.Add(_optRow);
 
-            var rowOut = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 3, AutoSize = true };
-            rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220)); rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-            rowOut.Controls.Add(new Label { Text = "Output (.xlsx):", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+            // 4. DESTINATION
+            _txtOutput = CreateDarkTextBox();
+            var rowOut = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, AutoSize = true, Margin = new Padding(0, 0, 0, 20) };
+            rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110)); rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); rowOut.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            rowOut.Controls.Add(new Label { Text = "Output File:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.White }, 0, 0);
             rowOut.Controls.Add(_txtOutput, 1, 0);
-            _btnBrowseOutput = new Button { Text = "Save as...", Dock = DockStyle.Fill }; _btnBrowseOutput.Click += (_, __) => BrowseOutput(); rowOut.Controls.Add(_btnBrowseOutput, 2, 0); root.Controls.Add(rowOut);
+            _btnBrowseOutput = CreateDarkButton("Save As"); _btnBrowseOutput.Click += (_, __) => BrowseOutput(); rowOut.Controls.Add(_btnBrowseOutput, 2, 0);
+            topPanel.Controls.Add(rowOut);
 
-            var optRow = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
-            _chkRepair = new CheckBox { Text = "Auto repair broken refs", AutoSize = true, Checked = false, Enabled = false };
-            _chkTempCopy = new CheckBox { Text = "Work on temp copy", AutoSize = true, Checked = false, Enabled = false };
-            _chkCopyStyles = new CheckBox { Text = "Copy styles", AutoSize = true, Checked = false, Enabled = false };
-            _chkIncludeSubfolders = new CheckBox { Text = "Include subfolders", AutoSize = true, Checked = false };
-            optRow.Controls.Add(_chkRepair); optRow.Controls.Add(_chkTempCopy); optRow.Controls.Add(_chkCopyStyles); optRow.Controls.Add(_chkIncludeSubfolders); root.Controls.Add(optRow);
+            // 5. RUN BUTTON
+            _btnRun = new Button { Text = "START MERGE", Height = 50, Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 12F, FontStyle.Bold), BackColor = Color.FromArgb(88, 101, 242), ForeColor = Color.White, Cursor = Cursors.Hand, Margin = new Padding(0, 0, 0, 10) };
+            _btnRun.FlatAppearance.BorderSize = 0;
+            _btnRun.Click += async (_, __) => await RunAsync();
+            topPanel.Controls.Add(_btnRun);
 
-            _btnRun = new Button { Text = "RUN (FAST MERGE)", Height = 44, Dock = DockStyle.Top }; _btnRun.Click += async (_, __) => await RunAsync(); root.Controls.Add(_btnRun);
-            _progress = new ProgressBar { Dock = DockStyle.Top, Style = ProgressBarStyle.Marquee, Visible = false }; root.Controls.Add(_progress);
-            root.Controls.Add(new Label { AutoSize = true, Text = "Tip: Kéo-thả file/folder vào đây. Hỗ trợ .xls, .xlsx, .xlsm, .csv" });
+            _progress = new ProgressBar { Dock = DockStyle.Fill, Style = ProgressBarStyle.Marquee, Visible = false, Height = 6, Margin = new Padding(0, 0, 0, 10) };
+            topPanel.Controls.Add(_progress);
 
-            _log = new TextBox { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Both, ReadOnly = true }; root.Controls.Add(_log);
+            // 6. LOG CONSOLE
+            _log = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ScrollBars = ScrollBars.Both,
+                ReadOnly = true,
+                BackColor = Color.FromArgb(20, 22, 24),
+                ForeColor = Color.FromArgb(87, 242, 135), // Xanh lá cây sáng
+                Font = new Font("Consolas", 10F),
+                BorderStyle = BorderStyle.None
+            };
+
+            var logContainer = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 0, 24, 24) };
+            logContainer.Controls.Add(_log);
+
+            Controls.Add(logContainer);
+            Controls.Add(topPanel);
+
+            ApplyMode();
         }
 
-        private void ApplyMode() { bool f = _rbFolder.Checked; _txtInput.Enabled = !f; _btnBrowseInput.Enabled = !f; _txtFolder.Enabled = f; _btnBrowseFolder.Enabled = f; _chkIncludeSubfolders.Enabled = f; }
+        private TextBox CreateDarkTextBox()
+        {
+            var txt = new TextBox
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = Color.FromArgb(43, 45, 49),
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 10.5F)
+            };
+            return txt;
+        }
+
+        private Button CreateDarkButton(string text)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                Height = 30,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(71, 82, 196),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            return btn;
+        }
+
+        private void ApplyMode()
+        {
+            bool isFolder = _rbFolder.Checked;
+            _txtInput.Enabled = !isFolder;
+            _btnBrowseInput.Enabled = !isFolder;
+            _txtFolder.Enabled = isFolder;
+            _btnBrowseFolder.Enabled = isFolder;
+            _chkIncludeSubfolders.Enabled = isFolder;
+
+            if (_rowInFile != null) _rowInFile.Visible = !isFolder;
+            if (_rowInFolder != null) _rowInFolder.Visible = isFolder;
+            if (_optRow != null) _optRow.Visible = isFolder;
+        }
         private void BrowseInput() { using var dlg = new OpenFileDialog { Filter = "Excel & CSV Files (*.xls;*.xlsx;*.xlsm;*.csv)|*.xls;*.xlsx;*.xlsm;*.csv|All files (*.*)|*.*", Title = "Chọn file" }; if (dlg.ShowDialog(this) == DialogResult.OK) SetInputPath(dlg.FileName); }
         private void BrowseFolder() { using var dlg = new FolderBrowserDialog { Description = "Chọn folder" }; if (dlg.ShowDialog(this) == DialogResult.OK) SetFolderPath(dlg.SelectedPath); }
         private void BrowseOutput() { using var dlg = new SaveFileDialog { Filter = "Excel Workbook (*.xlsx)|*.xlsx", Title = "Lưu file", FileName = string.IsNullOrWhiteSpace(_txtOutput.Text) ? "merged.xlsx" : Path.GetFileName(_txtOutput.Text) }; if (dlg.ShowDialog(this) == DialogResult.OK) _txtOutput.Text = dlg.FileName; }
         private void SetInputPath(string filePath) { _txtInput.Text = filePath; if (string.IsNullOrWhiteSpace(_txtOutput.Text)) _txtOutput.Text = Path.Combine(Path.GetDirectoryName(filePath)!, Path.GetFileNameWithoutExtension(filePath) + "_merged.xlsx"); }
         private void SetFolderPath(string folderPath) { _txtFolder.Text = folderPath; if (string.IsNullOrWhiteSpace(_txtOutput.Text)) _txtOutput.Text = Path.Combine(folderPath, "merged_all.xlsx"); }
-        private void Log(string s) { if (InvokeRequired) { BeginInvoke(new Action<string>(Log), s); return; } _log.AppendText($"[{DateTime.Now:HH:mm:ss}] {s}{Environment.NewLine}"); }
 
         private bool IsFileLocked(string filePath) { try { if (!File.Exists(filePath)) return false; using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { stream.Close(); } } catch (IOException) { return true; } return false; }
 
         private async Task RunAsync()
         {
+            if (TrayAppContext.IsMergeRunning) { MessageBox.Show(this, "Hệ thống đang bận gộp một tác vụ khác. Vui lòng chờ!", "Busy", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+
             var output = _txtOutput.Text.Trim();
             if (string.IsNullOrWhiteSpace(output)) { MessageBox.Show(this, "Bạn chưa chọn Output file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
             if (IsFileLocked(output)) { MessageBox.Show(this, "File Output đang mở. Vui lòng đóng lại!", "File in use", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
+            if (!TrayAppContext.TrySetBusy()) return;
+
             try
             {
-                SetBusy(true); _log.Clear(); Log("Bắt đầu xử lý (Fast Merge Engine)...");
+                SetBusy(true);
+                AppLog.Clear(); _log.Clear();
+                AppLog.Write("Bắt đầu xử lý (Fast Merge Engine)...");
+
                 string[] filesToMerge;
                 if (_rbSingleFile.Checked)
                 {
@@ -164,12 +292,15 @@ namespace SheetAppendApp
                     if (filesToMerge.Length == 0) { MessageBox.Show(this, "Folder không có file Excel/CSV hợp lệ.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
                 }
 
-                var report = await Task.Run(() => NpoiMerger.MergeFast_ToOneXlsx(filesToMerge, output, trySkipHeaderIfMatchesBase: true, Log));
-                Log($"====================================="); Log($"HOÀN THÀNH!"); Log($"File thành công: {report.FilesSucceeded}/{report.InputFiles}"); Log($"Tổng số dòng đã gộp: {report.RowsWritten}");
+                var report = await Task.Run(() => NpoiMerger.MergeFast_ToOneXlsx(filesToMerge, output, trySkipHeaderIfMatchesBase: true, AppLog.Write));
+                AppLog.Write($"=====================================");
+                AppLog.Write($"HOÀN THÀNH!");
+                AppLog.Write($"File thành công: {report.FilesSucceeded}/{report.InputFiles}");
+                AppLog.Write($"Tổng số dòng đã gộp: {report.RowsWritten}");
                 MessageBox.Show(this, "Đã gộp xong thành công!", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch (Exception ex) { Log("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-            finally { SetBusy(false); }
+            catch (Exception ex) { AppLog.Write("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            finally { TrayAppContext.SetIdle(); SetBusy(false); }
         }
 
         private void SetBusy(bool busy) { _btnRun.Enabled = !busy; _btnBrowseInput.Enabled = !busy; _btnBrowseFolder.Enabled = !busy; _btnBrowseOutput.Enabled = !busy; _rbSingleFile.Enabled = !busy; _rbFolder.Enabled = !busy; _chkIncludeSubfolders.Enabled = !busy; _progress.Visible = busy; }

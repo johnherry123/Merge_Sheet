@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +16,33 @@ namespace SheetAppendApp
         private readonly Control _uiInvoker = new Control();
 
         private MainForm? _mainForm;
+
+        public static event Action<string>? TargetSelected;
+        public static event Action<bool>? BusyStateChanged;
+        public static string? CurrentTarget { get; private set; }
+        public static bool IsMergeRunning { get; private set; }
+
+        private static readonly object _globalLock = new();
+
+        public static bool TrySetBusy()
+        {
+            lock (_globalLock)
+            {
+                if (IsMergeRunning) return false;
+                IsMergeRunning = true;
+                BusyStateChanged?.Invoke(true);
+                return true;
+            }
+        }
+
+        public static void SetIdle()
+        {
+            lock (_globalLock)
+            {
+                IsMergeRunning = false;
+                BusyStateChanged?.Invoke(false);
+            }
+        }
 
         // ===== Merge single-flight (không spawn nhiều task) =====
         private readonly object _mergeSync = new();
@@ -145,6 +172,10 @@ namespace SheetAppendApp
                         var target = msg.Substring("MERGE|".Length);
                         RequestMerge(target);
                     }
+                    else if (msg.Equals("SHOW", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowMain();
+                    }
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception ex)
@@ -163,6 +194,9 @@ namespace SheetAppendApp
             targetPath = (targetPath ?? "").Trim().Trim('"');
             if (string.IsNullOrWhiteSpace(targetPath)) return;
 
+            CurrentTarget = targetPath;
+            TargetSelected?.Invoke(targetPath);
+
             lock (_mergeSync)
             {
                 if (_currentMergeTask != null && !_currentMergeTask.IsCompleted)
@@ -180,6 +214,7 @@ namespace SheetAppendApp
 
         private async Task RunMergeAsync(string targetPath)
         {
+            if (!TrySetBusy()) return;
             try
             {
                 AppLog.Write($"[MERGE] Start: {targetPath}");
@@ -231,6 +266,8 @@ namespace SheetAppendApp
             }
             finally
             {
+                SetIdle();
+
                 // ✅ Task kết thúc -> nếu có pending latest thì chạy tiếp đúng 1 cái
                 string? next = null;
                 lock (_mergeSync)
@@ -243,7 +280,7 @@ namespace SheetAppendApp
                 if (!string.IsNullOrWhiteSpace(next))
                 {
                     AppLog.Write($"[QUEUE] Run latest queued: {next}");
-                    RequestMerge(next);
+                    _ = Task.Run(() => RequestMerge(next));
                 }
             }
         }

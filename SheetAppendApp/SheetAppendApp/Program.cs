@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Forms;
+using System.Text;
 
 namespace SheetAppendApp
 {
@@ -15,18 +15,28 @@ namespace SheetAppendApp
         static void Main(string[] args)
         {
             ApplicationConfiguration.Initialize();
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            // Bỏ giới hạn bảo mật ZIP của NPOI để đọc/ghi các file Excel cực lớn (tránh lỗi "ZIP entry size is too large")
+            NPOI.OpenXml4Net.Util.ZipSecureFile.SetMinInflateRatio(0.0d);
+            NPOI.OpenXml4Net.Util.ZipSecureFile.SetMaxEntrySize(0xFFFFFFFF);
 
             string? target = ArgParser.GetMergeTarget(args);
 
             using var mutex = new Mutex(initiallyOwned: true, name: MutexName, out bool isFirstInstance);
 
-            // Nếu có target và đã có instance chạy => gửi qua pipe cho instance đó xử lý rồi thoát
-            if (!isFirstInstance && !string.IsNullOrWhiteSpace(target))
+            // Nếu không phải instance đầu tiên, gửi lệnh qua pipe rồi thoát (tránh tạo 2 icon ở khay hệ thống)
+            if (!isFirstInstance)
             {
-                if (IpcClient.TrySendMerge(PipeName, target))
-                    return;
-
-                // nếu gửi fail thì cứ chạy như instance mới (hiếm)
+                if (!string.IsNullOrWhiteSpace(target))
+                {
+                    IpcClient.TrySendMessage(PipeName, "MERGE|" + target);
+                }
+                else
+                {
+                    IpcClient.TrySendMessage(PipeName, "SHOW");
+                }
+                return;
             }
 
             // First instance: chạy tray context + mở pipe server

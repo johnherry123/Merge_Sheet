@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.IO.Pipes;
 using System.Text;
@@ -7,7 +7,7 @@ namespace SheetAppendApp
 {
     internal static class IpcClient
     {
-        public static bool TrySendMerge(string pipeName, string targetPath)
+        public static bool TrySendMessage(string pipeName, string message)
         {
             try
             {
@@ -15,7 +15,7 @@ namespace SheetAppendApp
                 client.Connect(timeout: 250);
 
                 using var sw = new StreamWriter(client, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
-                sw.WriteLine("MERGE|" + targetPath);
+                sw.WriteLine(message);
                 return true;
             }
             catch

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -44,6 +44,7 @@ namespace SheetAppendApp
                 {
                     var files = Directory.GetFiles(targetPath, "*.*", SearchOption.TopDirectoryOnly)
                         .Where(f => !Path.GetFileName(f).StartsWith("~$", StringComparison.OrdinalIgnoreCase))
+                        .Where(f => !Path.GetFileName(f).StartsWith("merged_all", StringComparison.OrdinalIgnoreCase))
                         .Where(f => validExts.Contains(Path.GetExtension(f).ToLowerInvariant()))
                         .OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToArray();
 
